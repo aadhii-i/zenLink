@@ -1,0 +1,116 @@
+# Production deployment. Differs from docker-compose.yml (dev) in three
+# ways: builds the `production` target of each Dockerfile (no --reload, no
+# bind mounts — code is baked into the image), doesn't expose Postgres/
+# Redis ports to the host, and the frontend serves a static build via
+# nginx instead of the Vite dev server.
+#
+# Usage:
+#   cp .env.example .env   # fill in REAL production values — there are no
+#                           # "localhost" fallbacks here on purpose; see
+#                           # docs/DEPLOYMENT.md for the full checklist
+#                           # (HTTPS/reverse proxy, backups, etc. — this
+#                           # file intentionally doesn't bundle either).
+#   docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: shortlink_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shortlink_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: shortlink_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - shortlink_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.Dockerfile
+      target: production
+    container_name: shortlink_backend
+    restart: unless-stopped
+    environment:
+      PROJECT_NAME: ${PROJECT_NAME:-ShortLink}
+      API_V1_PREFIX: ${API_V1_PREFIX:-/api/v1}
+      ENVIRONMENT: production
+      DEBUG: "false"
+      BASE_URL: ${BASE_URL}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      SECRET_KEY: ${SECRET_KEY}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      REFRESH_TOKEN_EXPIRE_MINUTES: ${REFRESH_TOKEN_EXPIRE_MINUTES:-10080}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS}
+      SHORT_CODE_LENGTH: ${SHORT_CODE_LENGTH:-7}
+      CUSTOM_ALIAS_MIN_LENGTH: ${CUSTOM_ALIAS_MIN_LENGTH:-3}
+      CUSTOM_ALIAS_MAX_LENGTH: ${CUSTOM_ALIAS_MAX_LENGTH:-32}
+      URL_CACHE_TTL_SECONDS: ${URL_CACHE_TTL_SECONDS:-300}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-60}
+      AUTH_RATE_LIMIT_PER_MINUTE: ${AUTH_RATE_LIMIT_PER_MINUTE:-5}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    networks:
+      - shortlink_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+      target: production
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+    container_name: shortlink_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    networks:
+      - shortlink_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  shortlink_network:
+    driver: bridge
