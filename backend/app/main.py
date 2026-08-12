@@ -107,9 +107,17 @@ async def rate_limit_exceeded_handler(request: Request, exc: Exception) -> JSONR
 
     client_ip = request.client.host if request.client else "unknown"
     logger.warning(f"Rate limit exceeded: {client_ip} on {request.method} {request.url.path}")
+    message = "Too many requests. Please try again later."
     return JSONResponse(
         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-        content={"success": False, "message": "Too many requests. Please try again later."},
+        # Both `message` and `detail` carry the same text: different pages
+        # in the frontend read one or the other depending on which endpoint
+        # they call (see frontend/src/api and callers), and this handler is
+        # global — it can fire for any of them. Without `detail`, auth pages
+        # (which only check `.detail`, matching auth.py's HTTPException
+        # errors) silently fell back to a generic "check your credentials"
+        # message on a 429, masking the real cause.
+        content={"success": False, "message": message, "detail": message},
     )
 
 
@@ -118,7 +126,7 @@ async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     logger.info(f"AppError on {request.method} {request.url.path}: {exc.message}")
     return JSONResponse(
         status_code=exc.status_code,
-        content={"success": False, "message": exc.message},
+        content={"success": False, "message": exc.message, "detail": exc.message},
     )
 
 
@@ -130,6 +138,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={
             "success": False,
             "message": "Validation error",
+            "detail": "Validation error",
             "errors": exc.errors(),
         },
     )
@@ -138,9 +147,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.exception(f"Unhandled error on {request.method} {request.url.path}: {exc}")
+    message = "Internal server error"
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"success": False, "message": "Internal server error"},
+        content={"success": False, "message": message, "detail": message},
     )
 
 
