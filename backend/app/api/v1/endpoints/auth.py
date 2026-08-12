@@ -4,9 +4,15 @@ Authentication endpoints: register, login, refresh, profile.
 register/login/refresh carry a stricter rate limit than the app-wide
 default (brute-force / mass-registration protection) — see
 core/rate_limit.py. slowapi's decorator requires the route function to
-accept `request: Request` so it can key the limit by client IP.
+accept `request: Request` so it can key the limit by client IP, and (since
+core/rate_limit.py sets headers_enabled=True) a `response: Response`
+parameter too — on a successful return it injects X-RateLimit-* headers
+into that Response object, and raises if the route doesn't expose one.
+Without it, every successful (non-exception) call through a rate-limited
+route 500s; error paths that raise before returning are unaffected, which
+is why this only ever showed up as register/login failing on valid input.
 """
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.api.deps import get_auth_service, get_current_user
 from app.core.config import settings
@@ -30,6 +36,7 @@ _AUTH_LIMIT = f"{settings.AUTH_RATE_LIMIT_PER_MINUTE}/minute"
 @limiter.limit(_AUTH_LIMIT)
 async def register(
     request: Request,
+    response: Response,
     payload: UserCreate,
     auth_service: AuthService = Depends(get_auth_service),
 ) -> User:
@@ -43,6 +50,7 @@ async def register(
 @limiter.limit(_AUTH_LIMIT)
 async def login(
     request: Request,
+    response: Response,
     payload: UserLogin,
     auth_service: AuthService = Depends(get_auth_service),
 ) -> TokenResponse:
@@ -59,6 +67,7 @@ async def login(
 @limiter.limit(_AUTH_LIMIT)
 async def refresh(
     request: Request,
+    response: Response,
     payload: RefreshRequest,
     auth_service: AuthService = Depends(get_auth_service),
 ) -> TokenResponse:
