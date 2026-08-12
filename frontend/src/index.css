@@ -9,3 +9,85 @@ html {
 body {
   @apply antialiased;
 }
+
+::selection {
+  @apply bg-primary-500/25 text-inherit;
+}
+
+/* Thin, unobtrusive scrollbar — Firefox + WebKit. Purely cosmetic, falls
+   back to the platform default anywhere unsupported. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: theme('colors.gray.300') transparent;
+}
+.dark * {
+  scrollbar-color: theme('colors.gray.700') transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700 rounded-full border-2 border-solid border-transparent bg-clip-padding;
+}
+
+@layer utilities {
+  /* Faint dot/grid backdrop for hero-type sections — a texture, not a
+     pattern anyone is meant to consciously notice. */
+  .bg-grid {
+    background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .glass {
+    @apply bg-white/70 dark:bg-gray-900/60 backdrop-blur-xl;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-accent-500;
+  }
+
+  .skeleton {
+    @apply bg-gray-200 dark:bg-gray-800 rounded motion-safe:animate-shimmer;
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      theme('colors.gray.100 / 60%') 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+  }
+  .dark .skeleton {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      theme('colors.gray.700 / 40%') 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+  }
+
+  /* Hand-drawn doodle strokes "draw themselves in" once, then sit still —
+     driven by stroke-dasharray/offset rather than opacity so it reads as
+     sketching, not fading. Respects reduced-motion via the motion-safe
+     variant on the class that applies this animation. */
+  .doodle-draw {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    pathLength: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

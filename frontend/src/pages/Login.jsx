@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import Card from '../components/ui/Card'
+import Input from '../components/ui/Input'
+import Button from '../components/ui/Button'
 
 export default function Login() {
   const { login } = useAuth()
@@ -31,24 +34,19 @@ export default function Login() {
   }
 
   return (
-    <section className="max-w-md mx-auto px-4 py-16">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Log in</h1>
+    <section className="max-w-md mx-auto px-4 py-16 motion-safe:animate-fade-in-up">
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">Log in</h1>
 
-      {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 text-sm">
-          {error}
-        </div>
-      )}
+      <Card className="p-6">
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 text-sm">
+            {error}
+          </div>
+        )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            Email
-          </label>
-          <input
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Email"
             id="email"
             name="email"
             type="email"
@@ -56,17 +54,9 @@ export default function Login() {
             required
             value={formData.email}
             onChange={handleChange}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
-        </div>
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            Password
-          </label>
-          <input
+          <Input
+            label="Password"
             id="password"
             name="password"
             type="password"
@@ -74,17 +64,12 @@ export default function Login() {
             required
             value={formData.password}
             onChange={handleChange}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
-        </div>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="w-full py-2.5 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {isSubmitting ? 'Logging in...' : 'Log in'}
-        </button>
-      </form>
+          <Button type="submit" disabled={isSubmitting} className="w-full">
+            {isSubmitting ? 'Logging in...' : 'Log in'}
+          </Button>
+        </form>
+      </Card>
 
       <p className="mt-6 text-sm text-center text-gray-600 dark:text-gray-400">
         Don&apos;t have an account?{' '}

@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import Card from '../components/ui/Card'
+import Input from '../components/ui/Input'
+import Button from '../components/ui/Button'
 
 export default function Profile() {
   const { user, updateProfile, logout } = useAuth()
@@ -10,6 +13,8 @@ export default function Profile() {
   const [success, setSuccess] = useState('')
 
   if (!user) return null
+
+  const initial = (user.full_name || user.email || '?').charAt(0).toUpperCase()
 
   const handleSave = async (e) => {
     e.preventDefault()
@@ -33,17 +38,25 @@ export default function Profile() {
   }
 
   return (
-    <section className="max-w-lg mx-auto px-4 py-16">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Your profile</h1>
+    <section className="max-w-lg mx-auto px-4 py-16 motion-safe:animate-fade-in-up">
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-accent-600 text-white flex items-center justify-center text-xl font-bold shadow-soft flex-shrink-0">
+          {initial}
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Your profile</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
+        </div>
+      </div>
 
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 space-y-4">
+      <Card className="p-6 space-y-4">
         {success && (
-          <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 text-sm">
+          <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 text-sm motion-safe:animate-fade-in-up">
             {success}
           </div>
         )}
         {error && (
-          <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 text-sm">
+          <div className="p-3 rounded-lg bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 text-sm motion-safe:animate-fade-in-up">
             {error}
           </div>
         )}
@@ -55,35 +68,19 @@ export default function Profile() {
 
         {isEditing ? (
           <form onSubmit={handleSave} className="space-y-3">
-            <div>
-              <label
-                htmlFor="full_name"
-                className="block text-sm text-gray-500 dark:text-gray-400 mb-1"
-              >
-                Full name
-              </label>
-              <input
-                id="full_name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-              />
-            </div>
+            <Input
+              label="Full name"
+              id="full_name"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
             <div className="flex gap-3">
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="px-4 py-2 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 disabled:opacity-50 transition-colors"
-              >
+              <Button type="submit" disabled={isSaving}>
                 {isSaving ? 'Saving...' : 'Save'}
-              </button>
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-              >
+              </Button>
+              <Button type="button" variant="secondary" onClick={handleCancel}>
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
         ) : (
@@ -104,7 +101,7 @@ export default function Profile() {
             Log out
           </button>
         </div>
-      </div>
+      </Card>
     </section>
   )
 }

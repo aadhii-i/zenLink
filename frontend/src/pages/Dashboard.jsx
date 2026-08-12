@@ -4,6 +4,10 @@ import { urlApi } from '../api/urlApi'
 import CreateUrlModal from '../components/CreateUrlModal'
 import EditUrlModal from '../components/EditUrlModal'
 import ConfirmDialog from '../components/ConfirmDialog'
+import QrCodeButton from '../components/QrCodeButton'
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import { useCountUp } from '../hooks/useCountUp'
 
 const SORT_OPTIONS = [
   { value: 'created_at', label: 'Date created' },
@@ -12,12 +16,29 @@ const SORT_OPTIONS = [
   { value: 'original_url', label: 'URL' },
 ]
 
-function StatCard({ label, value }) {
+const STAT_ICONS = {
+  total: (
+    <path d="M9 12a3 3 0 0 0 4.24 0l3-3a3 3 0 0 0-4.24-4.24l-1 1M15 12a3 3 0 0 0-4.24 0l-3 3a3 3 0 0 0 4.24 4.24l1-1" />
+  ),
+  active: <path d="M20 6L9 17l-5-5" />,
+  inactive: <path d="M18 6L6 18M6 6l12 12" />,
+  clicks: <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" />,
+}
+
+function StatCard({ label, value, icon }) {
+  const animated = useCountUp(typeof value === 'number' ? value : 0)
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4">
-      <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{value}</p>
-    </div>
+    <Card hover className="p-4">
+      <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+          {icon}
+        </svg>
+        <p className="text-sm">{label}</p>
+      </div>
+      <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1.5 tabular-nums">
+        {animated}
+      </p>
+    </Card>
   )
 }
 
@@ -42,6 +63,51 @@ function StatusBadge({ url }) {
     <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400">
       Active
     </span>
+  )
+}
+
+function SkeletonRows() {
+  return (
+    <div className="divide-y divide-gray-100 dark:divide-gray-800">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="px-4 py-4 flex items-center gap-4">
+          <div className="h-4 w-20 skeleton" />
+          <div className="h-4 w-40 skeleton hidden sm:block" />
+          <div className="h-4 w-14 skeleton" />
+          <div className="h-4 w-10 skeleton ml-auto" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function EmptyState({ filtered, onCreate }) {
+  return (
+    <div className="p-12 text-center">
+      <div className="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-100 to-accent-100 dark:from-primary-950 dark:to-accent-950 flex items-center justify-center mb-4">
+        <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6 text-primary-600 dark:text-primary-400">
+          <path
+            d="M9 12a3 3 0 0 0 4.24 0l3-3a3 3 0 0 0-4.24-4.24l-1 1M15 12a3 3 0 0 0-4.24 0l-3 3a3 3 0 0 0 4.24 4.24l1-1"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </svg>
+      </div>
+      <p className="text-gray-600 dark:text-gray-300 font-medium">
+        {filtered ? 'No URLs match your filters.' : "You haven't created any short URLs yet."}
+      </p>
+      {!filtered && (
+        <>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Create your first short link to see it here.
+          </p>
+          <Button className="mt-4" onClick={onCreate}>
+            + New URL
+          </Button>
+        </>
+      )}
+    </div>
   )
 }
 
@@ -153,34 +219,33 @@ export default function Dashboard() {
     setTimeout(() => setCopiedId(null), 2000)
   }
 
+  const isFiltered = Boolean(search) || statusFilter !== 'all'
+
   return (
     <section className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 motion-safe:animate-fade-in-up">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">My URLs</h1>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 transition-colors flex-shrink-0"
-        >
+        <Button onClick={() => setShowCreateModal(true)} className="flex-shrink-0">
           + New URL
-        </button>
+        </Button>
       </div>
 
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-          <StatCard label="Total URLs" value={stats.total_urls} />
-          <StatCard label="Active" value={stats.active_urls} />
-          <StatCard label="Inactive" value={stats.inactive_urls} />
-          <StatCard label="Total clicks" value={stats.total_clicks} />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6 motion-safe:animate-fade-in-up [animation-delay:50ms]">
+          <StatCard label="Total URLs" value={stats.total_urls} icon={STAT_ICONS.total} />
+          <StatCard label="Active" value={stats.active_urls} icon={STAT_ICONS.active} />
+          <StatCard label="Inactive" value={stats.inactive_urls} icon={STAT_ICONS.inactive} />
+          <StatCard label="Total clicks" value={stats.total_clicks} icon={STAT_ICONS.clicks} />
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 mb-4 flex flex-col sm:flex-row gap-3">
+      <Card className="p-4 mb-4 flex flex-col sm:flex-row gap-3 motion-safe:animate-fade-in-up [animation-delay:100ms]">
         <input
           type="search"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
           placeholder="Search by URL or short code..."
-          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 transition-all"
         />
         <select
           value={statusFilter}
@@ -188,7 +253,7 @@ export default function Dashboard() {
             setStatusFilter(e.target.value)
             setPage(1)
           }}
-          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 transition-all"
         >
           <option value="all">All statuses</option>
           <option value="active">Active</option>
@@ -202,7 +267,7 @@ export default function Dashboard() {
             setSortOrder(order)
             setPage(1)
           }}
-          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500 transition-all"
         >
           {SORT_OPTIONS.map((option) => (
             <optgroup key={option.value} label={option.label}>
@@ -211,23 +276,19 @@ export default function Dashboard() {
             </optgroup>
           ))}
         </select>
-      </div>
+      </Card>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 text-sm">
+        <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 text-sm motion-safe:animate-fade-in-up">
           {error}
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden">
+      <Card className="overflow-hidden motion-safe:animate-fade-in-up [animation-delay:150ms]">
         {loading ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400">Loading...</div>
+          <SkeletonRows />
         ) : items.length === 0 ? (
-          <div className="p-12 text-center text-gray-500 dark:text-gray-400">
-            {search || statusFilter !== 'all'
-              ? 'No URLs match your filters.'
-              : "You haven't created any short URLs yet."}
-          </div>
+          <EmptyState filtered={isFiltered} onCreate={() => setShowCreateModal(true)} />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -243,7 +304,10 @@ export default function Dashboard() {
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {items.map((url) => (
-                  <tr key={url.id}>
+                  <tr
+                    key={url.id}
+                    className="transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-800/40"
+                  >
                     <td className="px-4 py-3">
                       <a
                         href={url.short_url}
@@ -260,36 +324,40 @@ export default function Dashboard() {
                     <td className="px-4 py-3">
                       <StatusBadge url={url} />
                     </td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{url.click_count}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300 tabular-nums">
+                      {url.click_count}
+                    </td>
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {url.expires_at ? new Date(url.expires_at).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleCopy(url)}
-                          className="px-2.5 py-1 rounded-md text-xs font-medium border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                        >
-                          {copiedId === url.id ? 'Copied!' : 'Copy'}
-                        </button>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button variant="secondary" size="sm" onClick={() => handleCopy(url)}>
+                          {copiedId === url.id ? (
+                            <span className="text-primary-600 dark:text-primary-400 motion-safe:animate-pop-in">
+                              Copied!
+                            </span>
+                          ) : (
+                            'Copy'
+                          )}
+                        </Button>
+                        <QrCodeButton value={url.short_url} />
                         <Link
                           to={`/analytics/${url.id}`}
-                          className="px-2.5 py-1 rounded-md text-xs font-medium border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                         >
                           Analytics
                         </Link>
-                        <button
-                          onClick={() => setEditingUrl(url)}
-                          className="px-2.5 py-1 rounded-md text-xs font-medium border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                        >
+                        <Button variant="secondary" size="sm" onClick={() => setEditingUrl(url)}>
                           Edit
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
                           onClick={() => setDeletingUrl(url)}
-                          className="px-2.5 py-1 rounded-md text-xs font-medium border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
                         >
                           Delete
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -298,7 +366,7 @@ export default function Dashboard() {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4">
@@ -306,20 +374,22 @@ export default function Dashboard() {
             Page {page} of {totalPages} · {total} total
           </p>
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Previous
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Next
-            </button>
+            </Button>
           </div>
         </div>
       )}

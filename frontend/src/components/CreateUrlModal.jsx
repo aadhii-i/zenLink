@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import Modal from './Modal'
+import Input from './ui/Input'
+import Button from './ui/Button'
 import { urlApi } from '../api/urlApi'
 
 const initialFormData = { original_url: '', custom_alias: '', expires_at: '' }
@@ -44,75 +46,51 @@ export default function CreateUrlModal({ onClose, onCreated }) {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label
-            htmlFor="original_url"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            Long URL
-          </label>
-          <input
-            id="original_url"
-            name="original_url"
-            type="url"
-            placeholder="https://example.com/a/very/long/path"
-            required
-            value={formData.original_url}
-            onChange={handleChange}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          />
-        </div>
+        <Input
+          label="Long URL"
+          id="original_url"
+          name="original_url"
+          type="url"
+          placeholder="https://example.com/a/very/long/path"
+          required
+          value={formData.original_url}
+          onChange={handleChange}
+        />
 
-        <div>
-          <label
-            htmlFor="custom_alias"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            Custom alias <span className="text-gray-400 font-normal">(optional)</span>
-          </label>
-          <input
-            id="custom_alias"
-            name="custom_alias"
-            type="text"
-            placeholder="my-campaign"
-            value={formData.custom_alias}
-            onChange={handleChange}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          />
-        </div>
+        <Input
+          label={
+            <>
+              Custom alias <span className="text-gray-400 font-normal">(optional)</span>
+            </>
+          }
+          id="custom_alias"
+          name="custom_alias"
+          type="text"
+          placeholder="my-campaign"
+          value={formData.custom_alias}
+          onChange={handleChange}
+        />
 
-        <div>
-          <label
-            htmlFor="expires_at"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            Expires <span className="text-gray-400 font-normal">(optional)</span>
-          </label>
-          <input
-            id="expires_at"
-            name="expires_at"
-            type="datetime-local"
-            value={formData.expires_at}
-            onChange={handleChange}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          />
-        </div>
+        <Input
+          label={
+            <>
+              Expires <span className="text-gray-400 font-normal">(optional)</span>
+            </>
+          }
+          id="expires_at"
+          name="expires_at"
+          type="datetime-local"
+          value={formData.expires_at}
+          onChange={handleChange}
+        />
 
         <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex-1 py-2.5 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
+          <Button type="submit" disabled={isSubmitting} className="flex-1">
             {isSubmitting ? 'Creating...' : 'Create'}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-          >
+          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>

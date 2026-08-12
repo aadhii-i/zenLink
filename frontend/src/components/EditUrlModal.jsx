@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import Modal from './Modal'
+import Input from './ui/Input'
+import Button from './ui/Button'
 import { urlApi } from '../api/urlApi'
 
 function toDatetimeLocal(isoString) {
@@ -49,30 +51,24 @@ export default function EditUrlModal({ url, onClose, onUpdated }) {
           <p className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Short code
           </p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">{url.short_code}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 font-mono px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800/60 border border-gray-200/80 dark:border-gray-800 inline-block">
+            {url.short_code}
+          </p>
         </div>
 
-        <div>
-          <label
-            htmlFor="edit_original_url"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >
-            Long URL
-          </label>
-          <input
-            id="edit_original_url"
-            type="url"
-            required
-            value={originalUrl}
-            onChange={(e) => setOriginalUrl(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          />
-        </div>
+        <Input
+          label="Long URL"
+          id="edit_original_url"
+          type="url"
+          required
+          value={originalUrl}
+          onChange={(e) => setOriginalUrl(e.target.value)}
+        />
 
         <div>
           <label
             htmlFor="edit_expires_at"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
           >
             Expires <span className="text-gray-400 font-normal">(optional)</span>
           </label>
@@ -82,13 +78,13 @@ export default function EditUrlModal({ url, onClose, onUpdated }) {
               type="datetime-local"
               value={expiresAt}
               onChange={(e) => setExpiresAt(e.target.value)}
-              className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className="flex-1 px-3.5 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 bg-white/90 dark:bg-gray-900/70 text-gray-900 dark:text-white transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-primary-500/15 focus:border-primary-500"
             />
             {expiresAt && (
               <button
                 type="button"
                 onClick={() => setExpiresAt('')}
-                className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
               >
                 Clear
               </button>
@@ -96,31 +92,23 @@ export default function EditUrlModal({ url, onClose, onUpdated }) {
           </div>
         </div>
 
-        <label className="flex items-center gap-2 cursor-pointer">
+        <label className="flex items-center gap-2.5 cursor-pointer w-fit">
           <input
             type="checkbox"
             checked={isActive}
             onChange={(e) => setIsActive(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 focus:ring-offset-0"
           />
           <span className="text-sm text-gray-700 dark:text-gray-300">Active</span>
         </label>
 
         <div className="flex gap-3 pt-2">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex-1 py-2.5 rounded-lg bg-primary-600 text-white font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
+          <Button type="submit" disabled={isSubmitting} className="flex-1">
             {isSubmitting ? 'Saving...' : 'Save changes'}
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-          >
+          </Button>
+          <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
     </Modal>
