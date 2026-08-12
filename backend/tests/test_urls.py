@@ -55,9 +55,86 @@ async def test_create_url_rejects_non_http_scheme(client, auth_headers):
     assert response.status_code == 422
 
 
-async def test_create_url_requires_auth(client):
+async def test_create_url_anonymous_allowed(client):
+    """Authentication is optional: anonymous creation succeeds and works normally."""
     response = await client.post("/api/v1/urls", json={"original_url": "https://example.com/e"})
-    assert response.status_code == 401
+    assert response.status_code == 201
+    data = response.json()
+    assert data["is_custom_alias"] is False
+    assert len(data["short_code"]) == 7
+    assert data["short_url"].endswith(data["short_code"])
+
+
+async def test_create_url_anonymous_custom_alias(client):
+    response = await client.post(
+        "/api/v1/urls",
+        json={"original_url": "https://example.com/anon-alias", "custom_alias": "anon-alias"},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["short_code"] == "anon-alias"
+    assert data["is_custom_alias"] is True
+
+
+async def test_create_url_anonymous_expiry(client):
+    from datetime import datetime, timedelta, timezone
+
+    expires_at = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
+    response = await client.post(
+        "/api/v1/urls",
+        json={"original_url": "https://example.com/anon-expiry", "expires_at": expires_at},
+    )
+    assert response.status_code == 201
+    assert response.json()["expires_at"] is not None
+
+
+async def test_anonymous_url_not_in_any_users_dashboard(client, auth_headers):
+    created = await client.post(
+        "/api/v1/urls", json={"original_url": "https://example.com/anon-hidden"}
+    )
+    assert created.status_code == 201
+    url_id = created.json()["id"]
+
+    # Not visible in an authenticated user's list...
+    list_response = await client.get("/api/v1/urls", headers=auth_headers)
+    assert all(item["id"] != url_id for item in list_response.json()["items"])
+
+    # ...and not fetchable directly by an authenticated user either (404,
+    # same "don't confirm existence" behavior as someone else's URL).
+    get_response = await client.get(f"/api/v1/urls/{url_id}", headers=auth_headers)
+    assert get_response.status_code == 404
+
+
+async def test_anonymous_url_creation_rate_limited(client):
+    from app.core.config import settings
+
+    limit = settings.ANONYMOUS_URL_RATE_LIMIT_PER_MINUTE
+    for i in range(limit):
+        response = await client.post(
+            "/api/v1/urls", json={"original_url": f"https://example.com/anon-rl-{i}"}
+        )
+        assert response.status_code == 201
+
+    over_limit = await client.post(
+        "/api/v1/urls", json={"original_url": "https://example.com/anon-rl-over"}
+    )
+    assert over_limit.status_code == 429
+
+
+async def test_authenticated_create_url_not_rate_limited_by_anonymous_check(client, auth_headers):
+    """
+    Authenticated requests skip the anonymous-only check entirely — creating
+    more than the anonymous limit in a row must not 429 an authenticated user.
+    """
+    from app.core.config import settings
+
+    for i in range(settings.ANONYMOUS_URL_RATE_LIMIT_PER_MINUTE + 2):
+        response = await client.post(
+            "/api/v1/urls",
+            json={"original_url": f"https://example.com/auth-rl-{i}"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 201
 
 
 async def test_list_urls_pagination(client, auth_headers):

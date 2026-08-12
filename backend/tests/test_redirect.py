@@ -26,6 +26,19 @@ async def test_redirect_success(redirect_client, auth_headers):
     assert response.headers["location"] == "https://example.com/target"
 
 
+async def test_redirect_success_anonymous_url(redirect_client):
+    """An anonymously-created URL (owner_id = NULL) redirects exactly like an owned one."""
+    created = await redirect_client.post(
+        "/api/v1/urls",
+        json={"original_url": "https://example.com/anon-target", "custom_alias": "anonredirect"},
+    )
+    assert created.status_code == 201
+
+    response = await redirect_client.get("/anonredirect", follow_redirects=False)
+    assert response.status_code == 302
+    assert response.headers["location"] == "https://example.com/anon-target"
+
+
 async def test_redirect_inactive_url_returns_410(redirect_client, auth_headers):
     created = await redirect_client.post(
         "/api/v1/urls",

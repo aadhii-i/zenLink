@@ -120,6 +120,11 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = 60
     # Stricter limit for auth endpoints (brute-force / mass-registration protection).
     AUTH_RATE_LIMIT_PER_MINUTE: int = 5
+    # Stricter limit for unauthenticated URL creation specifically (abuse
+    # protection now that no account is required) — see
+    # core/anonymous_rate_limit.py. Authenticated requests skip this check
+    # entirely and remain subject only to RATE_LIMIT_PER_MINUTE above.
+    ANONYMOUS_URL_RATE_LIMIT_PER_MINUTE: int = 10
 
     # --- Logging ---
     LOG_LEVEL: str = "INFO"

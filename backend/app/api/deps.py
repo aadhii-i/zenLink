@@ -98,3 +98,37 @@ async def get_current_user(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is deactivated.")
 
     return user
+
+
+async def get_current_user_optional(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    repo: UserRepository = Depends(get_user_repository),
+) -> User | None:
+    """
+    Same decoding as get_current_user, but for endpoints where
+    authentication is optional (e.g. anonymous URL creation): any missing/malformed/
+    expired credential resolves to None instead of raising 401, so the
+    caller falls back to anonymous behavior rather than being rejected.
+    A deactivated account still resolves to None here rather than 403 —
+    an anonymous request is a valid outcome for this dependency; only
+    get_current_user's hard-auth path needs to surface that as an error.
+    """
+    if credentials is None:
+        return None
+
+    decoded = decode_token(credentials.credentials)
+    if decoded is None or decoded.type != TokenType.ACCESS:
+        return None
+
+    try:
+        user_id = uuid.UUID(decoded.sub)
+    except ValueError:
+        return None
+
+    user = await repo.get_by_id(user_id)
+    if user is None or not user.is_active:
+        return None
+
+    return user
+
+    return user

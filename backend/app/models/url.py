@@ -14,8 +14,12 @@ from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 class URL(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "urls"
 
-    owner_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    # NULL owner_id = an anonymously-created URL: fully functional (redirects,
+    # expiry, custom alias all work normally) but not owned by anyone, so it
+    # can never appear in a dashboard/history query (those always filter by
+    # owner_id == <the logged-in user's id>, and NULL never equals a UUID).
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
     )
     original_url: Mapped[str] = mapped_column(String(2048), nullable=False)
     short_code: Mapped[str] = mapped_column(String(32), unique=True, index=True, nullable=False)
@@ -28,7 +32,7 @@ class URL(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     # for anything beyond a simple total.
     click_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    owner: Mapped["User"] = relationship(back_populates="urls")
+    owner: Mapped["User | None"] = relationship(back_populates="urls")
     clicks: Mapped[list["URLClick"]] = relationship(
         back_populates="url", cascade="all, delete-orphan"
     )

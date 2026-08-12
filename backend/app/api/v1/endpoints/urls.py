@@ -11,9 +11,12 @@ import math
 import uuid
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
+from redis.asyncio import Redis
 
-from app.api.deps import get_current_user, get_url_service
+from app.api.deps import get_current_user, get_current_user_optional, get_url_service
+from app.core.anonymous_rate_limit import enforce_anonymous_url_rate_limit
+from app.db.redis_client import get_redis
 from app.models.url import URL
 from app.models.user import User
 from app.schemas.url import URLCreate, URLListResponse, URLRead, URLStats, URLUpdate
@@ -26,14 +29,31 @@ router = APIRouter()
     "",
     response_model=URLRead,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a short URL",
+    summary="Create a short URL — works with or without an account",
 )
 async def create_url(
+    request: Request,
     payload: URLCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User | None = Depends(get_current_user_optional),
     url_service: URLService = Depends(get_url_service),
+    redis_client: Redis = Depends(get_redis),
 ) -> URLRead:
-    url: URL = await url_service.create_short_url(current_user.id, payload)
+    """
+    Authenticated callers get their URL saved to their account (owner_id =
+    their user id, visible in /urls and the dashboard). Unauthenticated
+    callers get a fully working URL with owner_id = NULL — it redirects,
+    respects custom alias/expiry, and is tracked in analytics data just
+    like any other, but never appears in anyone's history since every
+    other endpoint here filters by a real owner id. Anonymous requests get
+    an extra, stricter rate limit (see core/anonymous_rate_limit.py);
+    authenticated ones are exempt from that and rely on the standard
+    global limit instead.
+    """
+    if current_user is None:
+        await enforce_anonymous_url_rate_limit(redis_client, request)
+
+    owner_id = current_user.id if current_user is not None else None
+    url: URL = await url_service.create_short_url(owner_id, payload)
     return URLRead.from_model(url)
 
 

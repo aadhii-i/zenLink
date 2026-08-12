@@ -35,7 +35,7 @@ class URLRepository:
     async def create(
         self,
         *,
-        owner_id: uuid.UUID,
+        owner_id: uuid.UUID | None,
         original_url: str,
         short_code: str,
         is_custom_alias: bool,

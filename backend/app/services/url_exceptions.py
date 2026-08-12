@@ -34,3 +34,12 @@ class ShortCodeGenerationError(AppError):
         super().__init__(
             "Could not generate a unique short code. Please try again.", status_code=500
         )
+
+
+class AnonymousRateLimitExceeded(AppError):
+    def __init__(self):
+        super().__init__(
+            "Too many links created from this network. Sign in for a higher limit, "
+            "or try again in a minute.",
+            status_code=429,
+        )

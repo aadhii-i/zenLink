@@ -50,7 +50,7 @@ class URLService:
         self.repo = url_repo
         self.redis = redis_client
 
-    async def create_short_url(self, owner_id: uuid.UUID, payload: URLCreate) -> URL:
+    async def create_short_url(self, owner_id: uuid.UUID | None, payload: URLCreate) -> URL:
         if payload.custom_alias:
             if payload.custom_alias.lower() in RESERVED_ALIASES:
                 raise AliasReservedError(payload.custom_alias)
